@@ -2,13 +2,26 @@ import './App.css';
 import {xFormMachine} from './xformstate';
 import {useMachine} from "@xstate/react";
 
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+async function sleep(fn, ...args) {
+    await timeout(3000);
+    return fn(...args);
+}
+
 const formMachine = xFormMachine('auth', [{
     name: 'email',
     rules: [
         {
             validator: (value, contextForm) => {
-                console.log(contextForm);
+                console.log('contextForm', contextForm)
                 return value.includes('@')
+            },
+            asyncValidator: async (value, contextForm) => {
+                await sleep(() => {
+                    console.log('ok im done with it')
+                })
             },
             error: 'Incorrect email'
         }

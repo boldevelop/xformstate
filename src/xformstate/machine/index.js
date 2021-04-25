@@ -1,11 +1,71 @@
 import {validateFieldName, validateFieldRules, validateFieldsArrayName} from "../validators";
 import {assign, Machine} from "xstate";
-import {getValueByName} from "../helpers";
+
+const formContextFormForValidate = (context, fieldsArrayName) => {
+    const contextForm = {};
+
+    fieldsArrayName.forEach(name => {
+        contextForm[name] = context[name].value;
+    });
+
+    return contextForm;
+}
+
+const formErrorObjectByValidate = (contextForm, fieldsArrayName, validatorObject) => {
+    const errorObject = [];
+
+    fieldsArrayName.forEach(fieldName => {
+        const fieldValue = contextForm[fieldName];
+        const rules = validatorObject[fieldName];
+
+        for (const rule of rules) {
+            if (!rule.validator(fieldValue ? fieldValue : '', contextForm)) {
+                errorObject.push({
+                    name: fieldName,
+                    error: rule.error,
+                });
+                break;
+            }
+        }
+    })
+
+    return errorObject;
+}
+
+const formErrorObjectByValidateAsync = async (contextForm, fieldsArrayName, validatorAsyncObject) => {
+    for (const fieldName of fieldsArrayName) {
+        const fieldValue = contextForm[fieldName];
+        const rules = validatorAsyncObject[fieldName];
+
+        for (const rule of rules) {
+            try {
+                await rule.validator(fieldValue ? fieldValue : '', contextForm)
+            } catch (errorObject) {
+                let error = rule.error;
+                if (typeof errorObject === 'string') {
+                    error = errorObject;
+                }
+                if (typeof errorObject.error === 'object') {
+                    error = errorObject.error.message;
+                }
+
+                await Promise.reject([{
+                    name: fieldName,
+                    error,
+                }]);
+            }
+        }
+    }
+
+    return [];
+}
 
 const xFormMachine = (id, fields) => {
-    const context = {};
+    const contextMachine = {};
     const validatorObject = {};
+    const validatorAsyncObject = {};
     const fieldsArrayName = [];
+    let withAsyncValidator = false;
 
     fields.forEach(field => {
         const {name, initialValue, rules} = field;
@@ -14,32 +74,79 @@ const xFormMachine = (id, fields) => {
 
         fieldsArrayName.push(name);
 
-        context[name] = {
+        contextMachine[name] = {
             value: initialValue ? initialValue : '',
             error: ''
         }
 
         validatorObject[name] = [];
+        validatorAsyncObject[name] = [];
 
         if (!rules) {
             return;
         }
         for (const rule of rules) {
+            if (rule.asyncValidator) {
+                validatorAsyncObject[name].push({
+                    validator: rule.asyncValidator,
+                });
+                withAsyncValidator = true;
+            }
             if (!rule.error) {
                 rule.error = 'Incorrect value';
-                console.warn('Missing error in rule of field. It will set \'Incorrect value\'');
+                console.warn('Missing error in rule of field. It will set: \'Incorrect value\'');
             }
-            validatorObject[name].push(rule)
+            validatorObject[name].push({
+                validator: rule.validator,
+                error: rule.error,
+            });
         }
     });
 
     validateFieldsArrayName(fieldsArrayName);
 
+    const validateFields = async (context) => {
+        const contextForm = formContextFormForValidate(context, fieldsArrayName);
+        const errorObject = formErrorObjectByValidate(contextForm, fieldsArrayName, validatorObject);
+
+        if (errorObject.length) {
+            await Promise.reject(errorObject);
+        }
+    }
+
+    const validateAsyncFields = async (context) => {
+        const contextForm = formContextFormForValidate(context, fieldsArrayName);
+
+        try {
+            await formErrorObjectByValidateAsync(contextForm, fieldsArrayName, validatorAsyncObject);
+        } catch (e) {
+            await Promise.reject(e);
+        }
+    }
+
+    const validateAsync = {
+        validateAsync: {
+            invoke: {
+                id: 'validateAsyncFields',
+                src: validateAsyncFields,
+                onDone: {
+                    target: "submit"
+                },
+                onError: {
+                    target: "edit",
+                    actions: ['onErrorValidate'],
+                }
+            }
+        }
+    }
+
+    const validateTarget = withAsyncValidator ? 'validateAsync' : "submit";
+
     return Machine(
         {
             id: `formMachine-${id}`,
             initial: 'edit',
-            context,
+            context: contextMachine,
             states: {
                 edit: {
                     on: {
@@ -51,66 +158,21 @@ const xFormMachine = (id, fields) => {
                 validate: {
                     invoke: {
                         id: 'validateFields',
-                        src: (context, event) =>
-                            new Promise((resolve, reject) => {
-                                const errorObject = [];
-                                const contextForm = {};
-
-                                fieldsArrayName.forEach(name => {
-                                    contextForm[name] = context[name].value;
-                                });
-                                fieldsArrayName.forEach(fieldName => {
-                                    const fieldValue = getValueByName(context, fieldName);
-                                    const rules = validatorObject[fieldName];
-
-                                    for (const rule of rules) {
-                                        if (!rule.validator(fieldValue ? fieldValue : '', contextForm)) {
-                                            errorObject.push({
-                                                name: fieldName,
-                                                error: rule.error,
-                                            });
-                                            break;
-                                        }
-                                    }
-                                })
-
-                                if (errorObject.length) {
-                                    reject(errorObject)
-                                } else {
-                                    resolve(true);
-                                }
-                            }),
+                        src: validateFields,
                         onDone: {
-                            target: "submit"
+                            target: validateTarget,
                         },
                         onError: {
                             target: "edit",
-                            actions: assign((context, event) => {
-                                const errorObject = {};
-
-                                /**
-                                 * eventData {
-                                 *     name: fieldName
-                                 *     error: errorText
-                                 * }
-                                 * */
-                                event.data.forEach(errorData => {
-                                    errorObject[errorData.name] = {
-                                        error: errorData.error
-                                    };
-                                })
-
-                                return errorObject
-                            }),
+                            actions: ['onErrorValidate'],
                         }
                     }
                 },
+                ...(withAsyncValidator ? validateAsync : []),
                 submit: {
-                    on: {
-                        '': {
-                            actions: ['submit'],
-                            target: 'edit'
-                        },
+                    always: {
+                        actions: ['submit'],
+                        target: 'edit'
                     }
                 }
             },
@@ -134,12 +196,26 @@ const xFormMachine = (id, fields) => {
                 submit: assign((context, event) => {
                     console.log('submit', context);
                 }),
+                onErrorValidate: assign((context, event) => {
+                    const contextWithErrorMessage = {};
+                    /**
+                     * eventData {
+                     *     name: fieldName
+                     *     error: errorText
+                     * }
+                     * */
+                    event.data.forEach(errorData => {
+                        contextWithErrorMessage[errorData.name] = { error: errorData.error };
+                    })
+
+                    return contextWithErrorMessage
+                }),
             }
         }
     )
 }
 
-export { xFormMachine }
+export {xFormMachine}
 
 /** sample
  {

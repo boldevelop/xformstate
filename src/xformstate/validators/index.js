@@ -18,11 +18,16 @@ const validateFieldRules = (rules) => {
     }
     if (rules.length) {
         for (const rule of rules) {
-            if (!rule.validator) {
-                throw Error('Missing validator in rule.');
+            if (!rule.validator && !rule.asyncValidator) {
+                throw Error('Missing validator/asyncValidator in rule.');
             }
-            if (!isFunction(rule.validator)) {
-                throw TypeError(`Rules validator should be callable. Validator: ${typeof rule.validator}`);
+
+            if (rule.validator && !isFunction(rule.validator)) {
+                throw TypeError(`Validator should be callable. Validator: ${typeof rule.validator}`);
+            }
+
+            if (rule.asyncValidator && !isFunction(rule.asyncValidator)) {
+                throw TypeError(`AsyncValidator should be callable. Validator: ${typeof rule.asyncValidator}`);
             }
         }
     }
