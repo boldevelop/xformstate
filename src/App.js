@@ -5,8 +5,9 @@ import {useMachine} from "@xstate/react";
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-async function sleep(fn, ...args) {
-    await timeout(3000);
+
+async function sleep(fn, s = 1, ...args) {
+    await timeout(s * 1000);
     return fn(...args);
 }
 
@@ -20,10 +21,12 @@ const formMachine = xFormMachine('auth', [{
             },
             asyncValidator: async (value, contextForm) => {
                 await sleep(() => {
-                    console.log('ok im done with it')
+                    if (value.length < 3) {
+                        throw 'Email is exist';
+                    }
                 })
             },
-            error: 'Incorrect email'
+            error: 'Email should have @'
         }
     ],
     asyncRules: [],
@@ -36,7 +39,22 @@ const formMachine = xFormMachine('auth', [{
             error: 'Too short'
         }
     ],
-}], 'asyncFormValidator');
+}], {
+    asyncFormValidator: async (contextForm) => {
+        await sleep(() => {
+            if (contextForm.email.length === 5) {
+                throw 'Not recommended password';
+            } else {
+                return ({
+                    data: 'Welcome friend'
+                });
+            }
+        });
+    },
+    submitForm: (contextForm) => {
+        console.log('Submitted values: ', contextForm)
+    }
+});
 
 function App() {
     const [state, send] = useMachine(formMachine);
@@ -64,10 +82,12 @@ function App() {
                 <input type="text" value={state.context.email.value} onChange={onChangeEmail} placeholder="email"/>
                 <p style={{color: 'red'}}>{state.context.email.error}</p>
 
-                <input type="text" value={state.context.password.value} onChange={onChangePassword} placeholder="password"/>
+                <input type="text" value={state.context.password.value} onChange={onChangePassword}
+                       placeholder="password"/>
                 <p style={{color: 'red'}}>{state.context.password.error}</p>
 
-                <input type="submit" value="Submit"/>
+                <input type="submit" value="Submit" disabled={state.context.__loading}/>
+                <p style={{color: 'red'}}>{state.context.__formError}</p>
             </form>
         </div>
     );

@@ -41,8 +41,15 @@ const validateFieldsArrayName = (fieldsArrayName) => {
     }
 }
 
+const validateAsyncFormValidator = (asyncFormValidator) => {
+    if (asyncFormValidator && !isFunction(asyncFormValidator)) {
+        throw TypeError(`AsyncFormValidator should be callable. AsyncFormValidator: ${typeof asyncFormValidator}`);
+    }
+}
+
 export {
     validateFieldName,
     validateFieldRules,
     validateFieldsArrayName,
+    validateAsyncFormValidator,
 }
