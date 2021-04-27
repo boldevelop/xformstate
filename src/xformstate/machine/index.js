@@ -176,7 +176,7 @@ const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
         try {
             await asyncFormValidator(contextForm);
         } catch (e) {
-            await Promise.reject(formErrorObjectFromResponse(e, '', '')[0].error);
+            await Promise.reject(formErrorObjectFromResponse(await e, '', '')[0].error);
         }
     }
 

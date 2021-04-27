@@ -1,9 +1,6 @@
-import {useState, useEffect} from "react";
+import {useState} from "react";
 import {xFormMachine} from "../xformstate";
 import {useMachine} from "@xstate/react";
-
-const fields = {};
-let formMeta = {};
 
 /**
  * @typedef {{ value: string, error: string, onChange: function(string): void }} Field
@@ -30,40 +27,23 @@ const useXFormState = (id, fieldsOptions, formOptions) => {
     const [machine] = useState(() => xFormMachine(id, fieldsOptions, formOptions));
     const [state, send] = useMachine(machine);
 
-    useEffect(() => {
-        fieldsOptions.forEach((field) => {
+    const fields = {};
+    const formMeta = {};
 
-            const {name} = field;
-            fields[name] = {
-                ...fields[name],
-                onChange: (newValue) => {
-                    send('TYPE', {name, value: newValue})
-                },
-            }
-        });
+    fieldsOptions.forEach((field) => {
 
-        formMeta = {
-            ...formMeta,
-            onSubmit: () => send('VALIDATE'),
-        }
-    })
-
-    fieldsOptions.forEach(field => {
         const {name} = field;
         const {value, error} = state.context[name];
-
-        if (fields[name]) {
-            fields[name].value = value;
-            fields[name].error = error;
-        } else {
-            fields[name] = {
-                ...fields[name],
-                value,
-                error,
-            }
+        fields[name] = {
+            onChange: (newValue) => {
+                send('TYPE', {name, value: newValue})
+            },
+            value,
+            error,
         }
     });
 
+    formMeta.onSubmit = () => send('VALIDATE');
     formMeta.error = state.context.__formError;
     formMeta.loading = state.context.__loading;
 

@@ -1,5 +1,6 @@
 import {useXFormState} from "../xformstate-react";
 import {sleep} from "../helpers";
+import {Input} from "./input";
 
 
 const emailField = {
@@ -36,7 +37,7 @@ const passwordField = {
 const formOptions = {
     asyncFormValidator: async (contextForm) => {
         await sleep(() => {
-            if (contextForm.email.length < 3) {
+            if (contextForm.password.length < 5) {
                 throw Promise.reject('Too short password');
             } else {
                 return ({
@@ -51,8 +52,8 @@ const formOptions = {
 }
 
 
-export const Sample1 = () => {
-    const [fields, formMeta] = useXFormState('auth-1', [emailField, passwordField], formOptions);
+export const Sample1 = ({ id }) => {
+    const [fields, formMeta] = useXFormState('auth-1' + id, [emailField, passwordField], formOptions);
     const { email, password } = fields;
     const { onSubmit, error, loading } = formMeta;
 
@@ -70,17 +71,14 @@ export const Sample1 = () => {
     }
 
     return (
-        <div>
+        <div style={{ marginBottom: '1rem' }}>
             <form onSubmit={onFormSubmit}>
-                <input type="text" value={email.value} onChange={onChangeEmail} placeholder="email"/>
-                <p style={{color: 'red'}}>{email.error}</p>
+                <Input label="Email" id="email" value={email.value} onChange={onChangeEmail} placeholder="email" error={email.error}/>
 
-                <input type="text" value={password.value} onChange={onChangePassword}
-                       placeholder="password"/>
-                <p style={{color: 'red'}}>{password.error}</p>
+                <Input label="Password" id="password" value={password.value} onChange={onChangePassword} placeholder="password" error={password.error}/>
 
                 <input type="submit" value="Submit" disabled={loading}/>
-                <p style={{color: 'red'}}>{error}</p>
+                <p style={{color: 'red', margin: 0}}>{error}</p>
             </form>
         </div>
     )
