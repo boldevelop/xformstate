@@ -1,115 +1,17 @@
+import {assign, Machine} from "xstate";
 import {
     validateAsyncFormValidator,
     validateFieldName,
     validateFieldRules,
     validateFieldsArrayName
 } from "../validators";
-import {assign, interpret, Machine} from "xstate";
-import {formErrorObjectFromResponse} from "../helpers";
-
-const formContextFormForValidate = (context, fieldsArrayName) => {
-    const contextForm = {};
-
-    fieldsArrayName.forEach(name => {
-        contextForm[name] = context[name].value;
-    });
-
-    return contextForm;
-}
-
-const formErrorObjectByValidate = (contextForm, fieldsArrayName, validatorObject) => {
-    const errorObject = [];
-
-    fieldsArrayName.forEach(fieldName => {
-        const fieldValue = contextForm[fieldName];
-        const rules = validatorObject[fieldName];
-
-        for (const rule of rules) {
-            if (!rule.validator(fieldValue ? fieldValue : '', contextForm)) {
-                errorObject.push({
-                    name: fieldName,
-                    error: rule.error,
-                });
-                break;
-            }
-        }
-    })
-
-    return errorObject;
-}
-
-const formErrorObjectByValidateAsync = async (contextForm, fieldsArrayName, validatorAsyncObject) => {
-    for (const fieldName of fieldsArrayName) {
-        const fieldValue = contextForm[fieldName];
-        const rules = validatorAsyncObject[fieldName];
-
-        for (const rule of rules) {
-            try {
-                await rule.validator(fieldValue ? fieldValue : '', contextForm)
-            } catch (errorObject) {
-                await Promise.reject(formErrorObjectFromResponse(errorObject, rule.error, fieldName));
-            }
-        }
-    }
-
-    return [];
-}
-
-const getTargets = (withAsyncValidator, withAsyncFormValidator) => {
-    const targetMachine = Machine({
-        id: '_target-machine',
-        initial: 'noValidators',
-        context: {
-            validate: 'submit',
-            validateAsync: 'submit',
-        },
-        states: {
-            noValidators: {
-                on: {
-                    ASYNC_VALIDATOR: 'onlyAsyncValidator',
-                    ASYNC_FORM_VALIDATOR: 'onlyAsyncFormValidator',
-                }
-            },
-            onlyAsyncValidator: {
-                entry: assign(() => ({
-                    validate: 'validateAsync',
-                    validateAsync: 'submit',
-                })),
-                on: {
-                    ASYNC_FORM_VALIDATOR: 'allValidators'
-                }
-            },
-            onlyAsyncFormValidator: {
-                entry: assign(() => ({
-                    validate: 'asyncFormValidator',
-                    validateAsync: 'submit',
-                })),
-                on: {
-                    ASYNC_VALIDATOR: 'allValidators'
-                }
-            },
-            allValidators: {
-                entry: assign(() => ({
-                    validate: 'validateAsync',
-                    validateAsync: 'asyncFormValidator',
-                })),
-            }
-        }
-    });
-
-    const service = interpret(targetMachine);
-    service.start();
-
-    if (withAsyncValidator) {
-        service.send('ASYNC_VALIDATOR');
-    }
-
-    if (withAsyncFormValidator) {
-        service.send('ASYNC_FORM_VALIDATOR');
-    }
-
-    return service.state.context;
-}
+import {
+    formContextFormForValidate,
+    formErrorObjectByValidate,
+    formErrorObjectByValidateAsync,
+    formErrorObjectFromResponse
+} from "../helpers";
+import {getTargets} from "./targetMachine";
 
 const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
     /** initial setup */
@@ -177,7 +79,6 @@ const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
     validateFieldsArrayName(fieldsArrayName);
 
     /** setup validators and state */
-
     const targets = getTargets(withAsyncValidator, withAsyncFormValidator);
 
     const validateFields = async (context) => {
@@ -202,7 +103,7 @@ const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
     const validateAsyncForm = async (context) => {
         const contextForm = formContextFormForValidate(context, fieldsArrayName);
         try {
-           await asyncFormValidator(contextForm);
+            await asyncFormValidator(contextForm);
         } catch (e) {
             await Promise.reject(formErrorObjectFromResponse(e, '', '')[0].error);
         }
@@ -351,7 +252,6 @@ export {xFormMachine}
                     id: 'validateFields',
                     src: (context, event) =>
                         new Promise((resolve, reject) => {
-                            console.log('validateFields');
                             if (context.email.value.includes('@')) {
                                 resolve(true);
                             } else {
@@ -364,7 +264,6 @@ export {xFormMachine}
                     onError: {
                         target: "edit",
                         actions: assign((context, event) => {
-                            console.log('onError action', event);
                             return {
                                 email: {
                                     error: 'not valid email',
@@ -393,7 +292,6 @@ export {xFormMachine}
         actions: {
             // action implementations
             edit: assign((context, event) => {
-                console.log(event);
                 return ({
                     [event.name]: {
                         value: event.value,
@@ -402,7 +300,6 @@ export {xFormMachine}
                 })
             }),
             submit: assign((context, event) => {
-                console.log('submit', context);
             }),
         },
         guards: {

@@ -1,6 +1,7 @@
 import './App.css';
 import {xFormMachine} from './xformstate';
 import {useMachine} from "@xstate/react";
+import {useXFormState} from "./xformstate-react";
 
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -29,7 +30,6 @@ const formMachine = xFormMachine('auth', [{
             error: 'Email should have @'
         }
     ],
-    asyncRules: [],
 }, {
     name: 'password',
     initialValue: '',
@@ -56,38 +56,86 @@ const formMachine = xFormMachine('auth', [{
     }
 });
 
-function App() {
-    const [state, send] = useMachine(formMachine);
+const emailField = {
+    name: 'email',
+    rules: [
+        {
+            validator: (value, contextForm) => {
+                console.log('contextForm', value)
+                console.log('contextForm', contextForm)
+                return value.includes('@')
+            },
+            asyncValidator: async (value, contextForm) => {
+                await sleep(() => {
+                    if (value.length < 3) {
+                        throw 'Email is exist';
+                    }
+                })
+            },
+            error: 'Email should have @'
+        }
+    ],
+}
 
-    const onChange = (name, value) => {
-        send('TYPE', {name, value});
+const passwordField = {
+    name: 'password',
+    initialValue: '',
+    rules: [
+        {
+            validator: (value) => value.length > 6,
+            error: 'Too short'
+        }
+    ],
+}
+
+const formOptions = {
+    asyncFormValidator: async (contextForm) => {
+        await sleep(() => {
+            if (contextForm.email.length === 5) {
+                throw 'Not recommended password';
+            } else {
+                return ({
+                    data: 'Welcome friend'
+                });
+            }
+        });
+    },
+    submitForm: (contextForm) => {
+        console.log('Submitted values: ', contextForm)
     }
+}
+
+function App() {
+    // const [state, send] = useMachine(formMachine);
+    const [fields, formMeta] = useXFormState('auth', [emailField, passwordField], formOptions);
+    const { email, password } = fields;
+    const { onSubmit, error, loading } = formMeta;
 
     const onChangeEmail = (e) => {
-        onChange('email', e.target.value);
+        email.onChange(e.target.value);
     }
 
     const onChangePassword = (e) => {
-        onChange('password', e.target.value);
+        password.onChange(e.target.value);
     }
 
-    const onSubmit = (e) => {
+    const onFormSubmit = (e) => {
         e.preventDefault();
-        send('VALIDATE');
+        onSubmit();
     }
 
     return (
-        <div className="App">
-            <form onSubmit={onSubmit}>
-                <input type="text" value={state.context.email.value} onChange={onChangeEmail} placeholder="email"/>
-                <p style={{color: 'red'}}>{state.context.email.error}</p>
+        <div>
+            <form onSubmit={onFormSubmit}>
+                <input type="text" value={email.value} onChange={onChangeEmail} placeholder="email"/>
+                <p style={{color: 'red'}}>{email.error}</p>
 
-                <input type="text" value={state.context.password.value} onChange={onChangePassword}
+                <input type="text" value={password.value} onChange={onChangePassword}
                        placeholder="password"/>
-                <p style={{color: 'red'}}>{state.context.password.error}</p>
+                <p style={{color: 'red'}}>{password.error}</p>
 
-                <input type="submit" value="Submit" disabled={state.context.__loading}/>
-                <p style={{color: 'red'}}>{state.context.__formError}</p>
+                <input type="submit" value="Submit" disabled={loading}/>
+                <p style={{color: 'red'}}>{error}</p>
             </form>
         </div>
     );
