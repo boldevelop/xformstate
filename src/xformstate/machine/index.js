@@ -13,6 +13,77 @@ import {
 } from "../helpers";
 import {getTargets} from "./targetMachine";
 
+/**
+ * The second argument of callback, contain form state with value
+ * @typedef {Record<string, string>} ContextForm
+ *
+ */
+
+/**
+ * Callback which will be fired when your field will start validate.
+ * If the field is correct, return true otherwise false
+ * @callback validatorCallback
+ * @param {string} value
+ * @param {ContextForm} contextForm
+ * @return {bool}
+ */
+
+/**
+ * Callback which will be fired
+ * after synchronous validation of all fields.
+ * If field has error throw error, string or reject Promise.
+ * In case of a failed validation, next asyncValidator will not be called
+ * @callback asyncValidatorCallback
+ * @param {string} value
+ * @param {ContextForm} contextForm
+ * @return {Promise<void>}
+ */
+
+/**
+ * Callback which will be fired
+ * after synchronous validation and async validation field, if all passes.
+ * If field has error throw error, string or reject Promise.
+ * @callback asyncFormValidatorCallback
+ * @param {ContextForm} contextForm
+ * @return {Promise<void>}
+ */
+
+/**
+ * Callback which will be fired
+ * after synchronous validation, async validation field, and async Form Validation.
+ * @callback submitFormCallback
+ * @param {ContextForm} contextForm
+ * @return {void}
+ */
+
+/**
+ * Rule of validation field
+ * @typedef {Object} ValidateRule
+ * @property {string} error - The failed field validation text by validator
+ * @property {validatorCallback} [validator] - callback which will be fired when your field will start validate.
+ * If the field is correct, return true otherwise false
+ * @property {asyncValidatorCallback} [asyncValidator] - callback which will be fired
+ * after synchronous validation of all fields.
+ * If field has error throw error, string or reject Promise.
+ * In case of a failed validation, next asyncValidator will not be called
+ *
+ */
+
+/**
+ * The field option
+ * @typedef {Object} FieldOption
+ * @property {string} name - The name of the field
+ * @property {string} [initialValue] - Initial value of the field
+ * @property {ValidateRule[]} [rules] {@link ValidateRule}
+ */
+
+/**
+ * The form option
+ * @typedef {Object} FormOptions
+ * @property {asyncFormValidatorCallback} asyncFormValidator
+ * @property {submitFormCallback} submitForm - Initial value of the field
+ * */
+
 const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
     /** initial setup */
     validateAsyncFormValidator(asyncFormValidator);
