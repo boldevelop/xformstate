@@ -12,8 +12,13 @@ import {useMachine} from "@xstate/react";
  */
 
 /**
+ * Callback which will be clear all fields.
+ * @callback clearFieldsMethod
+ */
+
+/**
  * The field option
- * @typedef {{ error: string, loading: boolean, onSubmit: function(): void }} FormMeta
+ * @typedef {{ error: string, loading: boolean, onSubmit: function(): void, clearFields: clearFieldsMethod  }} FormMeta
  */
 
 /**
@@ -43,6 +48,7 @@ const useXFormState = (id, fieldsOptions, formOptions) => {
         }
     });
 
+    formMeta.clearFields = () => send('CLEAR');
     formMeta.onSubmit = () => send('VALIDATE');
     formMeta.error = state.context.__formError;
     formMeta.loading = state.context.__loading;

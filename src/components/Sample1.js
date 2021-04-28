@@ -38,6 +38,17 @@ const passwordField = {
     ],
 }
 
+const code = `
+asyncValidator: async (value) => {
+  await sleep(async () => {
+    if (value.length < 5) {
+      await Promise.reject('Email is exist');
+    }
+  })
+}
+
+`;
+
 export const Sample1 = () => {
     const [submittedValue, setSubmittedValue] = useState(null);
     const submitForm = (contextForm) => setSubmittedValue(contextForm);
@@ -60,7 +71,7 @@ export const Sample1 = () => {
     }
 
     return (
-        <Form title={<>Асинхронная проверка поля email, с помощью <b>asyncValidator</b></>} onSubmit={onFormSubmit}>
+        <Form title={<>Асинхронная проверка поля email<br/> с помощью <b>asyncValidator</b></>} onSubmit={onFormSubmit} code={code}>
             <Input label="Email" id="email" value={email.value} onChange={onChangeEmail} placeholder="email" error={email.error}/>
             {loading && (
                 <p style={{ margin: 0, fontSize: 12 }}>Requesting...</p>

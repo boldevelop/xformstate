@@ -81,7 +81,7 @@ import {getTargets} from "./targetMachine";
  * The form option
  * @typedef {Object} FormOptions
  * @property {asyncFormValidatorCallback} [asyncFormValidator]
- * @property {submitFormCallback} [submitForm] - Initial value of the field
+ * @property {submitFormCallback} [submitForm]
  * */
 
 const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
@@ -253,10 +253,27 @@ const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
                 TYPE: {
                     actions: ['edit']
                 },
+                CLEAR: {
+                    actions: ['clearValues'],
+                }
             }
         },
         {
             actions: {
+                clearValues: assign((context, event) => {
+                    const newContext = {};
+                    if (context.__loading) {
+                        return;
+                    }
+
+                    fieldsArrayName.forEach(fieldName => {
+                        newContext[fieldName] = {
+                            value: '',
+                            error: '',
+                        }
+                    });
+                    return newContext;
+                }),
                 edit: assign((context, event) => {
                     if (context.__loading) {
                         return;
@@ -301,87 +318,3 @@ const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
 }
 
 export {xFormMachine}
-
-/** sample
- {
-        id: 'formMachine',
-        initial: 'edit',
-        context: {
-            email: {
-                value: '',
-                error: '',
-            },
-            password: {
-                value: '',
-                error: '',
-            }
-        },
-        states: {
-            edit: {
-                on: {
-                    VALIDATE: {
-                        target: 'validate'
-                    }
-                }
-            },
-            validate: {
-                invoke: {
-                    id: 'validateFields',
-                    src: (context, event) =>
-                        new Promise((resolve, reject) => {
-                            if (context.email.value.includes('@')) {
-                                resolve(true);
-                            } else {
-                                reject(`Error for number ${context.value} `)
-                            }
-                        }),
-                    onDone: {
-                        target: "submit"
-                    },
-                    onError: {
-                        target: "edit",
-                        actions: assign((context, event) => {
-                            return {
-                                email: {
-                                    error: 'not valid email',
-                                }
-                            }
-                        }),
-                    }
-                }
-            },
-            submit: {
-                on: {
-                    '': {
-                        actions: ['submit'],
-                        target: 'edit'
-                    },
-                }
-            }
-        },
-        on: {
-            TYPE: {
-                actions: ['edit']
-            },
-        }
-    },
- {
-        actions: {
-            // action implementations
-            edit: assign((context, event) => {
-                return ({
-                    [event.name]: {
-                        value: event.value,
-                        error: '',
-                    }
-                })
-            }),
-            submit: assign((context, event) => {
-            }),
-        },
-        guards: {
-            validateEmail: (context, event) => {
-                return context.email.value.includes('@');
-            },
-        }
- * */

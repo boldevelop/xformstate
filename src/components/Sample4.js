@@ -11,6 +11,17 @@ const emailField = {
 }
 
 
+const code = `
+const asyncFormValidator = async (contextForm) => {
+  await sleep(() => {
+    if (!contextForm.email.includes('@')) {
+      throw Promise.reject('Email should have @');
+    }
+  });
+};
+
+`;
+
 export const Sample4 = () => {
     const [submittedValue, setSubmittedValue] = useState(null);
     const submitForm = (contextForm) => {
@@ -40,7 +51,11 @@ export const Sample4 = () => {
     }
 
     return (
-        <Form title={<>Асинхронная валидация формы, с помощью <b>asyncFormValidator</b></>} onSubmit={onFormSubmit}>
+        <Form
+            title={<>Асинхронная валидация формы<br/> с помощью <b>asyncFormValidator</b></>}
+            onSubmit={onFormSubmit}
+            code={code}
+        >
             <Input label="Email" id="email" value={email.value} onChange={onChangeEmail} placeholder="email" error={email.error}/>
 
             <input type="submit" value="Submit" disabled={loading}/>

@@ -16,6 +16,14 @@ const emailField = {
     ],
 }
 
+const code = `
+const submitForm = (contextForm) => {
+  contextForm.email += 'gmail.com'
+  setSubmittedValue(contextForm)
+};
+
+`;
+
 export const Sample3 = () => {
     const [submittedValue, setSubmittedValue] = useState(null);
     const submitForm = (contextForm) => {
@@ -23,9 +31,9 @@ export const Sample3 = () => {
         setSubmittedValue(contextForm)
     };
 
-    const [fields, formMeta] = useXFormState('auth-3', [emailField], { submitForm });
-    const { email } = fields;
-    const { onSubmit, loading } = formMeta;
+    const [fields, formMeta] = useXFormState('auth-3', [emailField], {submitForm});
+    const {email} = fields;
+    const {onSubmit, loading} = formMeta;
 
     const onChangeEmail = (e) => {
         email.onChange(e.target.value);
@@ -37,8 +45,13 @@ export const Sample3 = () => {
     }
 
     return (
-        <Form title={<>Модифицирование данных формы <br/> после прохождения валидации, с помощью <b>submitForm</b></>} onSubmit={onFormSubmit}>
-            <Input label="Email" id="email" value={email.value} onChange={onChangeEmail} placeholder="email" error={email.error}/>
+        <Form
+            title={<>Модифицирование данных формы <br/> после прохождения валидации<br/> с помощью <b>submitForm</b></>}
+            onSubmit={onFormSubmit}
+            code={code}
+        >
+            <Input label="Email" id="email" value={email.value} onChange={onChangeEmail} placeholder="email"
+                   error={email.error}/>
 
             <input type="submit" value="Submit" disabled={loading}/>
 

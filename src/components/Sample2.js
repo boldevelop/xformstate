@@ -35,6 +35,11 @@ const passwordRepeatField = {
     ],
 }
 
+const code = `
+validator: (value, contextForm) => value === contextForm.password,
+
+`;
+
 export const Sample2 = () => {
     const [submittedValue, setSubmittedValue] = useState(null);
     const submitForm = (contextForm) => setSubmittedValue(contextForm);
@@ -61,7 +66,11 @@ export const Sample2 = () => {
     }
 
     return (
-        <Form title={<>Связанные поля, с использованием 2 аргумента в <b>validator</b></>} onSubmit={onFormSubmit}>
+        <Form
+            title={<>Связанные поля<br/> с использованием 2 аргумента в <b>validator</b></>}
+            onSubmit={onFormSubmit}
+            code={code}
+        >
             <Input label="Email" id="email" value={email.value} onChange={onChangeEmail} placeholder="email"
                    error={email.error}/>
 
