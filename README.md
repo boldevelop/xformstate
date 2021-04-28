@@ -137,3 +137,11 @@ declare function useXFormState(id: string, fieldOptions: FieldOptions[], formOpt
 * `onSubmit` - метод который нужно вызывать, чтоб запустить валидацию формы
 * `error` - ошибка поля полученная с `formOptions.asyncFormValidator`
 * `loading` - булево значение, которое активно при прохождении состояний **validate, validateAsync, asyncFormValidator**
+
+
+## Использование
+[Примеры](./src/App.js)
+```bash
+npm i
+npm run start
+```
