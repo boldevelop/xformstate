@@ -80,8 +80,8 @@ import {getTargets} from "./targetMachine";
 /**
  * The form option
  * @typedef {Object} FormOptions
- * @property {asyncFormValidatorCallback} asyncFormValidator
- * @property {submitFormCallback} submitForm - Initial value of the field
+ * @property {asyncFormValidatorCallback} [asyncFormValidator]
+ * @property {submitFormCallback} [submitForm] - Initial value of the field
  * */
 
 const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
@@ -258,6 +258,9 @@ const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
         {
             actions: {
                 edit: assign((context, event) => {
+                    if (context.__loading) {
+                        return;
+                    }
                     return ({
                         [event.name]: {
                             value: event.value,
@@ -279,7 +282,10 @@ const xFormMachine = (id, fields, {asyncFormValidator, submitForm}) => {
                      * }
                      * */
                     event.data.forEach(errorData => {
-                        contextWithErrorMessage[errorData.name] = {error: errorData.error};
+                        contextWithErrorMessage[errorData.name] = {
+                            error: errorData.error,
+                            value: context[errorData.name].value
+                        };
                     })
 
                     return contextWithErrorMessage
